@@ -3,7 +3,9 @@
 Timestamps, dates and duration parsing for [Chelabase](https://github.com/chelabase/chelabase)
 and its Neon fork: newtypes over [jiff](https://github.com/BurntSushi/jiff) that write and read
 the same JSON, Postgres and SQL forms chrono did, and a `parse_duration` with humantime's
-grammar. The crate docs (`src/lib.rs`) are the contract.
+grammar. For the fork, thin jiff wrappers: `human` (serde and clap for `std::time::Duration`
+in jiff's friendly format, still reading humantime's spellings such as `7days`) and `rfc3339`
+(`SystemTime` through `jiff::Timestamp`). The crate docs (`src/lib.rs`) are the contract.
 
 ## Use
 

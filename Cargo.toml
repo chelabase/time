@@ -29,8 +29,12 @@ sqlx = ["dep:sqlx", "dep:jiff-sqlx"]
 openapi = ["dep:utoipa"]
 
 [dev-dependencies]
+# `tests/human.rs` parses a `human::Duration` argument through clap's derive.
+clap = { version = "4.6.7", features = ["derive"] }
 proptest = "1.11.0"
+serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
+toml = "1.1.8"
 # pg_live connects through sqlx's tokio runtime.
 sqlx = { version = "0.9.0", default-features = false, features = ["postgres", "runtime-tokio"] }
 tokio = { version = "1.54.0", features = ["macros", "rt-multi-thread"] }
