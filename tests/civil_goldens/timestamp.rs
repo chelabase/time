@@ -1,0 +1,141 @@
+//! chrono 0.4.45's `DateTime<Utc>` formats the Neon fork uses beyond the ones `format_goldens.rs`
+//! holds, frozen as literals: `to_rfc3339_opts(SecondsFormat::Nanos, true)` and `format` with
+//! each of the fork's strftime patterns. Every row was printed by chrono through the oracle
+//! crate, and `oracle/tests/strftime.rs` checks each one against chrono while the oracle exists.
+
+/// `instant.format(pattern)` in chrono.
+pub struct Formatted {
+    pub instant: &'static str,
+    pub pattern: &'static str,
+    pub output: &'static str,
+}
+
+/// The strftime patterns the fork formats a `DateTime<Utc>` with.
+pub const FORK_PATTERNS: &[&str] = &[
+    // compute_tools/src/logger.rs
+    "%Y-%m-%d %H:%M:%S%.3f GMT",
+    // pageserver/src/consumption_metrics/upload.rs (an S3 key prefix)
+    "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ",
+    // pageserver/src/tenant/secondary/downloader.rs
+    "%d/%m/%Y %T",
+    // pageserver/src/tenant/timeline/walreceiver/connection_manager.rs
+    "%Y-%m-%d %H:%M:%S",
+    "%H:%M:%S",
+    // storage_scrubber/src/main.rs
+    "%Y_%m_%d__%H_%M_%S",
+];
+
+/// An RFC 3339 instant and chrono's `to_rfc3339_opts(SecondsFormat::Nanos, true)` of it.
+#[rustfmt::skip]
+pub const RFC3339_NANOS: &[(&str, &str)] = &[
+    ("2026-09-30T12:00:00Z", "2026-09-30T12:00:00.000000000Z"),
+    ("2026-09-30T12:00:00.5Z", "2026-09-30T12:00:00.500000000Z"),
+    ("2026-09-30T12:00:00.123456Z", "2026-09-30T12:00:00.123456000Z"),
+    ("2026-09-30T12:00:00.123456789Z", "2026-09-30T12:00:00.123456789Z"),
+    ("2026-09-30T12:00:00.000000001Z", "2026-09-30T12:00:00.000000001Z"),
+    ("2026-01-02T03:04:05.999999999Z", "2026-01-02T03:04:05.999999999Z"),
+    ("2026-12-31T23:59:59.9995Z", "2026-12-31T23:59:59.999500000Z"),
+    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00.000000000Z"),
+    ("1969-12-31T23:59:59.999999999Z", "1969-12-31T23:59:59.999999999Z"),
+    ("0999-01-02T03:04:05.0005Z", "0999-01-02T03:04:05.000500000Z"),
+    ("0000-01-02T03:04:05Z", "0000-01-02T03:04:05.000000000Z"),
+    ("-0001-12-31T23:59:59.25Z", "-0001-12-31T23:59:59.250000000Z"),
+    ("-0042-01-02T03:04:05.999999999Z", "-0042-01-02T03:04:05.999999999Z"),
+    ("-9999-01-02T01:59:59Z", "-9999-01-02T01:59:59.000000000Z"),
+    ("9999-12-30T22:00:00.999999999Z", "9999-12-30T22:00:00.999999999Z"),
+];
+
+/// Each fork pattern over instants across the range.
+#[rustfmt::skip]
+pub const STRFTIME: &[Formatted] = &[
+    Formatted { instant: "2026-09-30T12:00:00Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "2026-09-30 12:00:00.000 GMT" },
+    Formatted { instant: "2026-09-30T12:00:00Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=2026/month=09/day=30/hour=12/12:00:00Z" },
+    Formatted { instant: "2026-09-30T12:00:00Z", pattern: "%d/%m/%Y %T", output: "30/09/2026 12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00Z", pattern: "%Y-%m-%d %H:%M:%S", output: "2026-09-30 12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00Z", pattern: "%H:%M:%S", output: "12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "2026_09_30__12_00_00" },
+    Formatted { instant: "2026-09-30T12:00:00.5Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "2026-09-30 12:00:00.500 GMT" },
+    Formatted { instant: "2026-09-30T12:00:00.5Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=2026/month=09/day=30/hour=12/12:00:00Z" },
+    Formatted { instant: "2026-09-30T12:00:00.5Z", pattern: "%d/%m/%Y %T", output: "30/09/2026 12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.5Z", pattern: "%Y-%m-%d %H:%M:%S", output: "2026-09-30 12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.5Z", pattern: "%H:%M:%S", output: "12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.5Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "2026_09_30__12_00_00" },
+    Formatted { instant: "2026-09-30T12:00:00.123456Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "2026-09-30 12:00:00.123 GMT" },
+    Formatted { instant: "2026-09-30T12:00:00.123456Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=2026/month=09/day=30/hour=12/12:00:00Z" },
+    Formatted { instant: "2026-09-30T12:00:00.123456Z", pattern: "%d/%m/%Y %T", output: "30/09/2026 12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.123456Z", pattern: "%Y-%m-%d %H:%M:%S", output: "2026-09-30 12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.123456Z", pattern: "%H:%M:%S", output: "12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.123456Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "2026_09_30__12_00_00" },
+    Formatted { instant: "2026-09-30T12:00:00.123456789Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "2026-09-30 12:00:00.123 GMT" },
+    Formatted { instant: "2026-09-30T12:00:00.123456789Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=2026/month=09/day=30/hour=12/12:00:00Z" },
+    Formatted { instant: "2026-09-30T12:00:00.123456789Z", pattern: "%d/%m/%Y %T", output: "30/09/2026 12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.123456789Z", pattern: "%Y-%m-%d %H:%M:%S", output: "2026-09-30 12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.123456789Z", pattern: "%H:%M:%S", output: "12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.123456789Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "2026_09_30__12_00_00" },
+    Formatted { instant: "2026-09-30T12:00:00.000000001Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "2026-09-30 12:00:00.000 GMT" },
+    Formatted { instant: "2026-09-30T12:00:00.000000001Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=2026/month=09/day=30/hour=12/12:00:00Z" },
+    Formatted { instant: "2026-09-30T12:00:00.000000001Z", pattern: "%d/%m/%Y %T", output: "30/09/2026 12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.000000001Z", pattern: "%Y-%m-%d %H:%M:%S", output: "2026-09-30 12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.000000001Z", pattern: "%H:%M:%S", output: "12:00:00" },
+    Formatted { instant: "2026-09-30T12:00:00.000000001Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "2026_09_30__12_00_00" },
+    Formatted { instant: "2026-01-02T03:04:05.999999999Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "2026-01-02 03:04:05.999 GMT" },
+    Formatted { instant: "2026-01-02T03:04:05.999999999Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=2026/month=01/day=02/hour=03/03:04:05Z" },
+    Formatted { instant: "2026-01-02T03:04:05.999999999Z", pattern: "%d/%m/%Y %T", output: "02/01/2026 03:04:05" },
+    Formatted { instant: "2026-01-02T03:04:05.999999999Z", pattern: "%Y-%m-%d %H:%M:%S", output: "2026-01-02 03:04:05" },
+    Formatted { instant: "2026-01-02T03:04:05.999999999Z", pattern: "%H:%M:%S", output: "03:04:05" },
+    Formatted { instant: "2026-01-02T03:04:05.999999999Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "2026_01_02__03_04_05" },
+    Formatted { instant: "2026-12-31T23:59:59.9995Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "2026-12-31 23:59:59.999 GMT" },
+    Formatted { instant: "2026-12-31T23:59:59.9995Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=2026/month=12/day=31/hour=23/23:59:59Z" },
+    Formatted { instant: "2026-12-31T23:59:59.9995Z", pattern: "%d/%m/%Y %T", output: "31/12/2026 23:59:59" },
+    Formatted { instant: "2026-12-31T23:59:59.9995Z", pattern: "%Y-%m-%d %H:%M:%S", output: "2026-12-31 23:59:59" },
+    Formatted { instant: "2026-12-31T23:59:59.9995Z", pattern: "%H:%M:%S", output: "23:59:59" },
+    Formatted { instant: "2026-12-31T23:59:59.9995Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "2026_12_31__23_59_59" },
+    Formatted { instant: "1970-01-01T00:00:00Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "1970-01-01 00:00:00.000 GMT" },
+    Formatted { instant: "1970-01-01T00:00:00Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=1970/month=01/day=01/hour=00/00:00:00Z" },
+    Formatted { instant: "1970-01-01T00:00:00Z", pattern: "%d/%m/%Y %T", output: "01/01/1970 00:00:00" },
+    Formatted { instant: "1970-01-01T00:00:00Z", pattern: "%Y-%m-%d %H:%M:%S", output: "1970-01-01 00:00:00" },
+    Formatted { instant: "1970-01-01T00:00:00Z", pattern: "%H:%M:%S", output: "00:00:00" },
+    Formatted { instant: "1970-01-01T00:00:00Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "1970_01_01__00_00_00" },
+    Formatted { instant: "1969-12-31T23:59:59.999999999Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "1969-12-31 23:59:59.999 GMT" },
+    Formatted { instant: "1969-12-31T23:59:59.999999999Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=1969/month=12/day=31/hour=23/23:59:59Z" },
+    Formatted { instant: "1969-12-31T23:59:59.999999999Z", pattern: "%d/%m/%Y %T", output: "31/12/1969 23:59:59" },
+    Formatted { instant: "1969-12-31T23:59:59.999999999Z", pattern: "%Y-%m-%d %H:%M:%S", output: "1969-12-31 23:59:59" },
+    Formatted { instant: "1969-12-31T23:59:59.999999999Z", pattern: "%H:%M:%S", output: "23:59:59" },
+    Formatted { instant: "1969-12-31T23:59:59.999999999Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "1969_12_31__23_59_59" },
+    Formatted { instant: "0999-01-02T03:04:05.0005Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "0999-01-02 03:04:05.000 GMT" },
+    Formatted { instant: "0999-01-02T03:04:05.0005Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=0999/month=01/day=02/hour=03/03:04:05Z" },
+    Formatted { instant: "0999-01-02T03:04:05.0005Z", pattern: "%d/%m/%Y %T", output: "02/01/0999 03:04:05" },
+    Formatted { instant: "0999-01-02T03:04:05.0005Z", pattern: "%Y-%m-%d %H:%M:%S", output: "0999-01-02 03:04:05" },
+    Formatted { instant: "0999-01-02T03:04:05.0005Z", pattern: "%H:%M:%S", output: "03:04:05" },
+    Formatted { instant: "0999-01-02T03:04:05.0005Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "0999_01_02__03_04_05" },
+    Formatted { instant: "0000-01-02T03:04:05Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "0000-01-02 03:04:05.000 GMT" },
+    Formatted { instant: "0000-01-02T03:04:05Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=0000/month=01/day=02/hour=03/03:04:05Z" },
+    Formatted { instant: "0000-01-02T03:04:05Z", pattern: "%d/%m/%Y %T", output: "02/01/0000 03:04:05" },
+    Formatted { instant: "0000-01-02T03:04:05Z", pattern: "%Y-%m-%d %H:%M:%S", output: "0000-01-02 03:04:05" },
+    Formatted { instant: "0000-01-02T03:04:05Z", pattern: "%H:%M:%S", output: "03:04:05" },
+    Formatted { instant: "0000-01-02T03:04:05Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "0000_01_02__03_04_05" },
+    Formatted { instant: "-0001-12-31T23:59:59.25Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "-0001-12-31 23:59:59.250 GMT" },
+    Formatted { instant: "-0001-12-31T23:59:59.25Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=-0001/month=12/day=31/hour=23/23:59:59Z" },
+    Formatted { instant: "-0001-12-31T23:59:59.25Z", pattern: "%d/%m/%Y %T", output: "31/12/-0001 23:59:59" },
+    Formatted { instant: "-0001-12-31T23:59:59.25Z", pattern: "%Y-%m-%d %H:%M:%S", output: "-0001-12-31 23:59:59" },
+    Formatted { instant: "-0001-12-31T23:59:59.25Z", pattern: "%H:%M:%S", output: "23:59:59" },
+    Formatted { instant: "-0001-12-31T23:59:59.25Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "-0001_12_31__23_59_59" },
+    Formatted { instant: "-0042-01-02T03:04:05.999999999Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "-0042-01-02 03:04:05.999 GMT" },
+    Formatted { instant: "-0042-01-02T03:04:05.999999999Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=-0042/month=01/day=02/hour=03/03:04:05Z" },
+    Formatted { instant: "-0042-01-02T03:04:05.999999999Z", pattern: "%d/%m/%Y %T", output: "02/01/-0042 03:04:05" },
+    Formatted { instant: "-0042-01-02T03:04:05.999999999Z", pattern: "%Y-%m-%d %H:%M:%S", output: "-0042-01-02 03:04:05" },
+    Formatted { instant: "-0042-01-02T03:04:05.999999999Z", pattern: "%H:%M:%S", output: "03:04:05" },
+    Formatted { instant: "-0042-01-02T03:04:05.999999999Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "-0042_01_02__03_04_05" },
+    Formatted { instant: "-9999-01-02T01:59:59Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "-9999-01-02 01:59:59.000 GMT" },
+    Formatted { instant: "-9999-01-02T01:59:59Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=-9999/month=01/day=02/hour=01/01:59:59Z" },
+    Formatted { instant: "-9999-01-02T01:59:59Z", pattern: "%d/%m/%Y %T", output: "02/01/-9999 01:59:59" },
+    Formatted { instant: "-9999-01-02T01:59:59Z", pattern: "%Y-%m-%d %H:%M:%S", output: "-9999-01-02 01:59:59" },
+    Formatted { instant: "-9999-01-02T01:59:59Z", pattern: "%H:%M:%S", output: "01:59:59" },
+    Formatted { instant: "-9999-01-02T01:59:59Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "-9999_01_02__01_59_59" },
+    Formatted { instant: "9999-12-30T22:00:00.999999999Z", pattern: "%Y-%m-%d %H:%M:%S%.3f GMT", output: "9999-12-30 22:00:00.999 GMT" },
+    Formatted { instant: "9999-12-30T22:00:00.999999999Z", pattern: "year=%Y/month=%m/day=%d/hour=%H/%H:%M:%SZ", output: "year=9999/month=12/day=30/hour=22/22:00:00Z" },
+    Formatted { instant: "9999-12-30T22:00:00.999999999Z", pattern: "%d/%m/%Y %T", output: "30/12/9999 22:00:00" },
+    Formatted { instant: "9999-12-30T22:00:00.999999999Z", pattern: "%Y-%m-%d %H:%M:%S", output: "9999-12-30 22:00:00" },
+    Formatted { instant: "9999-12-30T22:00:00.999999999Z", pattern: "%H:%M:%S", output: "22:00:00" },
+    Formatted { instant: "9999-12-30T22:00:00.999999999Z", pattern: "%Y_%m_%d__%H_%M_%S", output: "9999_12_30__22_00_00" },
+];
