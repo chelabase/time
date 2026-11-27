@@ -4,7 +4,8 @@
 //! - [`rfc3339_strict`]: `DateTime::parse_from_rfc3339` (`TimestampExt::parse_rfc3339`);
 //! - [`rfc3339_relaxed`]: `DateTime<Utc>`'s `FromStr`, which its serde `Deserialize` calls;
 //! - [`date_iso`]: `NaiveDate::parse_from_str(s, "%Y-%m-%d")` (`DateExt::parse_iso`);
-//! - [`date_relaxed`]: `NaiveDate`'s `FromStr`, which its serde `Deserialize` calls.
+//! - [`date_relaxed`]: `NaiveDate`'s `FromStr`, which its serde `Deserialize` calls;
+//! - [`naive_datetime`]: `NaiveDateTime`'s `FromStr`, which its serde `Deserialize` calls.
 //!
 //! Each returns the instant as nanoseconds since the Unix epoch, or the date as fields, and leaves
 //! the range check to the caller (jiff's range is smaller than chrono's; see the crate docs).
@@ -406,6 +407,53 @@ pub(crate) fn date_relaxed(s: &str) -> Result<Ymd, Kind> {
         return Err(Kind::TooLong);
     }
     Ymd::new(year, month, day)
+}
+
+/// The fields chrono's `NaiveDateTime` `FromStr` reads, each inside chrono's range for it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct NaiveFields {
+    pub(crate) date: Ymd,
+    pub(crate) hour: u32,
+    pub(crate) minute: u32,
+    /// 0..=60; chrono keeps 60 as a leap second, the same instant as the next minute's
+    /// second 0.
+    pub(crate) second: u32,
+    pub(crate) nano: u32,
+}
+
+/// `NaiveDateTime`'s `FromStr` (and so chrono's serde), item by item: `Year`, `-`, `Month`, `-`,
+/// `Day`, `T`, `Hour`, `:`, `Minute`, `:`, `Second`, an optional `.` and fraction, and nothing
+/// else. Whitespace is skipped before every number, before each `-`, `T` and `:`, and at the
+/// end, but not before the `.`. The `T` is case-sensitive, and there is no offset.
+pub(crate) fn naive_datetime(s: &str) -> Result<NaiveFields, Kind> {
+    let (s, (year, month, day)) = date_items(s, true)?;
+    let s = literal(s.trim_start(), "T")?;
+    let (s, hour) = numeric(s, 2, false)?;
+    let hour = set_range(hour, 0..=23)?;
+    let s = literal(s.trim_start(), ":")?;
+    let (s, minute) = numeric(s, 2, false)?;
+    let minute = set_range(minute, 0..=59)?;
+    let s = literal(s.trim_start(), ":")?;
+    let (s, second) = numeric(s, 2, false)?;
+    let second = set_range(second, 0..=60)?;
+    let (s, nano) = match s.strip_prefix('.') {
+        Some(rest) => nanosecond(rest)?,
+        None => (s, 0),
+    };
+    if !s.trim_start().is_empty() {
+        return Err(Kind::TooLong);
+    }
+    // `Parsed::to_naive_datetime_with_offset`: the date is resolved after the whole string is
+    // read; the time's fields are already in range.
+    let date = Ymd::new(year, month, day)?;
+    Ok(NaiveFields {
+        date,
+        // The ranges above fit a u32.
+        hour: hour as u32,
+        minute: minute as u32,
+        second: second as u32,
+        nano,
+    })
 }
 
 #[cfg(test)]

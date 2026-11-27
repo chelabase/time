@@ -2,6 +2,7 @@
 //! every contract the crate docs list, with the exceptions in the crate docs' "Differences from
 //! chrono" section.
 
+mod naive;
 mod parse;
 #[cfg(feature = "sqlx")]
 mod pg;
@@ -13,6 +14,8 @@ use std::time::Duration;
 use jiff::tz::Offset;
 
 use crate::{DateExt, ParseError, SignedDuration, TimestampExt};
+
+pub use naive::{NaiveDateTime, OutOfTimestampRange};
 
 const NANOS_PER_SEC: i128 = 1_000_000_000;
 
@@ -89,6 +92,67 @@ impl Timestamp {
         Timestamp(t)
     }
 
+    /// RFC 3339 with `Z` and exactly 9 fraction digits: chrono's
+    /// `to_rfc3339_opts(SecondsFormat::Nanos, true)`.
+    ///
+    /// ```
+    /// use chelabase_time::{Timestamp, TimestampExt};
+    /// let t = Timestamp::from_unix_millis(1_790_769_600_500).unwrap();
+    /// assert_eq!(t.to_rfc3339_nanos(), "2026-09-30T12:00:00.500000000Z");
+    /// ```
+    pub fn to_rfc3339_nanos(&self) -> String {
+        self.rfc3339_string(Fraction::Nanos, "Z")
+    }
+
+    /// The UTC date and time written with a strftime pattern, as chrono's `format` wrote it,
+    /// for the directives the Neon fork's patterns use and no others:
+    ///
+    /// - `%Y`: the year, four digits in 0..=9999, otherwise signed (`-0042`);
+    /// - `%m`, `%d`, `%H`, `%M`, `%S`: two digits each;
+    /// - `%T`: `%H:%M:%S`;
+    /// - `%.3f`: a `.` and three fraction digits, truncated.
+    ///
+    /// Any other character is written as it is. A pattern with any other directive (`%f`,
+    /// `%y`, `%z`, `%%`, a lone `%`, …) is `None`: jiff, which does the formatting, doesn't
+    /// write all of them as chrono did (`%f`, `%y`), and only the ones above are compared with
+    /// chrono (`tests/civil_goldens.rs`). `%Y` is written here, not by jiff, which pads a
+    /// negative year to three digits (`-042`).
+    ///
+    /// ```
+    /// use chelabase_time::{Timestamp, TimestampExt};
+    /// let t = Timestamp::from_unix_millis(1_790_769_600_500).unwrap();
+    /// assert_eq!(
+    ///     t.strftime("%Y-%m-%d %H:%M:%S%.3f GMT").unwrap(),
+    ///     "2026-09-30 12:00:00.500 GMT"
+    /// );
+    /// assert_eq!(t.strftime("%d/%m/%Y %T").unwrap(), "30/09/2026 12:00:00");
+    /// assert_eq!(t.strftime("%s"), None);
+    /// ```
+    pub fn strftime(&self, format: &str) -> Option<String> {
+        let dt = Offset::UTC.to_datetime(self.0);
+        // The pattern jiff gets: the supported directives as they are, the year as text.
+        let mut pattern = String::with_capacity(format.len() + 8);
+        let mut chars = format.chars();
+        while let Some(c) = chars.next() {
+            if c != '%' {
+                pattern.push(c);
+                continue;
+            }
+            match chars.next()? {
+                // The year's text is digits and a sign, never a `%`. Writing to a String
+                // can't fail.
+                'Y' => write_year(&mut pattern, dt.year()).ok()?,
+                d @ ('m' | 'd' | 'H' | 'M' | 'S' | 'T') => {
+                    pattern.push('%');
+                    pattern.push(d);
+                }
+                '.' if chars.next()? == '3' && chars.next()? == 'f' => pattern.push_str("%.3f"),
+                _ => return None,
+            }
+        }
+        jiff::fmt::strtime::format(&pattern, dt).ok()
+    }
+
     fn floor_div(&self, unit: i128) -> i64 {
         // jiff's range in nanoseconds divided by at least 1000 fits an i64.
         self.0.as_nanosecond().div_euclid(unit) as i64
@@ -124,6 +188,7 @@ impl Timestamp {
         match fraction {
             Fraction::Millis => write!(f, ".{:03}", nano / 1_000_000),
             Fraction::Micros => write!(f, ".{:06}", nano / 1_000),
+            Fraction::Nanos => write!(f, ".{nano:09}"),
             Fraction::Auto => write_auto_fraction(f, nano),
         }
     }
@@ -142,6 +207,7 @@ enum Fraction {
     Auto,
     Millis,
     Micros,
+    Nanos,
 }
 
 /// chrono's year: four digits in 0..=9999, otherwise signed with at least four digits.
