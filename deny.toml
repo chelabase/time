@@ -1,12 +1,6 @@
 # cargo-deny configuration; CI runs `cargo deny check` (advisories, bans, licenses, sources).
 # https://embarkstudios.github.io/cargo-deny/
 
-# The oracle member compares this crate with chrono and humantime, so it is the one place they
-# may appear. Excluding it drops it and whatever only it pulls in; the library's own graph is
-# still checked (`scripts/deny-bans.sh` proves the bans fire on it).
-[graph]
-exclude = ["chelabase-time-oracle"]
-
 [advisories]
 db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
