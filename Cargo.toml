@@ -1,26 +1,59 @@
+[workspace]
+resolver = "3"
+members = [".", "oracle"]
+
 [package]
 name = "chelabase-time"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+repository = "https://github.com/chelabase/time"
 description = "Timestamps, dates and duration parsing for Chelabase"
+# Consumed as a git dependency pinned by rev, never from crates.io.
+publish = false
 
+# Versions follow chelabase's workspace: a chelabase bump of jiff, sqlx or utoipa needs a release
+# here first.
 [dependencies]
-jiff = { workspace = true }
-serde = { workspace = true }
+jiff = { version = "1.0.2", default-features = false, features = ["std", "serde", "tzdb-bundle-always"] }
+serde = "1.0.229"
 # Postgres codecs for `Timestamp` and `Date`.
-sqlx = { workspace = true, optional = true }
-jiff-sqlx = { workspace = true, optional = true }
-utoipa = { workspace = true, optional = true }
+sqlx = { version = "0.9.0", default-features = false, features = ["postgres"], optional = true }
+jiff-sqlx = { version = "1.0.0", features = ["postgres"], optional = true }
+utoipa = { version = "6.0.0", features = ["jiff_0_2"], optional = true }
 
 [features]
-# On by default so `cargo nextest run -p chelabase-time` runs the codec and schema parity tests
-# (a self dev-dependency would add a lock edge).
-default = ["sqlx", "openapi"]
+# Empty, so a consumer that only needs the types pulls neither sqlx nor utoipa.
+default = []
 sqlx = ["dep:sqlx", "dep:jiff-sqlx"]
 openapi = ["dep:utoipa"]
 
 [dev-dependencies]
-proptest = { workspace = true }
-serde_json = { workspace = true }
-tokio = { workspace = true }
+proptest = "1.11.0"
+serde_json = "1.0.151"
+# pg_live connects through sqlx's tokio runtime.
+sqlx = { version = "0.9.0", default-features = false, features = ["postgres", "runtime-tokio"] }
+tokio = { version = "1.54.0", features = ["macros", "rt-multi-thread"] }
+
+# The test files that use the codecs or the schema build only with their feature, so
+# `cargo test --no-default-features` builds and `cargo test --all-features` runs them all.
+[[test]]
+name = "differences"
+required-features = ["sqlx"]
+
+[[test]]
+name = "parse_literals"
+required-features = ["sqlx"]
+
+[[test]]
+name = "pg_live"
+required-features = ["sqlx"]
+
+[[test]]
+name = "pg_types"
+required-features = ["sqlx"]
+
+[[test]]
+name = "schema"
+required-features = ["openapi"]

@@ -1,0 +1,130 @@
+# fmt, clippy, the tests (all features with the live Postgres tests, and no default features)
+# and cargo deny. The `ci` job is the required check: it passes only when every other job did.
+name: ci
+
+on:
+  pull_request:
+  push: { branches: [main] }
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # rustup installs the channel and components rust-toolchain.toml names.
+      - name: Rust toolchain (rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          cargo -V
+
+      # Only main saves, so pull requests restore main's cache and stay under the cache limit.
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          shared-key: lint
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - run: cargo clippy --workspace --all-targets --no-default-features --locked -- -D warnings
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17@sha256:97fb53376be3e4fb1a8a61421daa69dcc3bf2fa39bda3259f5245f9a455af1a9 # 17.12
+        env:
+          POSTGRES_USER: chelabase
+          POSTGRES_PASSWORD: chelabase
+          POSTGRES_DB: chelabase_metadata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U chelabase -d chelabase_metadata"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Rust toolchain (rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          cargo -V
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          shared-key: test
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      # The live tests (`tests/pg_live.rs`) are #[ignore]d without a database; here they run
+      # against the service.
+      - name: cargo test --all-features (live tests included)
+        env:
+          CHELABASE_METADATA_DATABASE_URL: postgres://chelabase:chelabase@127.0.0.1:5432/chelabase_metadata
+        run: cargo test --workspace --all-features --locked -- --include-ignored
+
+      - run: cargo test --workspace --no-default-features --locked
+
+  deny:
+    name: deny
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
+        with:
+          tool: cargo-deny@0.20.2
+
+      - name: Rust toolchain (rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          cargo -V
+
+      - run: cargo deny check
+
+      # The bans fire on the library's graph although the oracle member is excluded.
+      - run: bash scripts/deny-bans.sh
+
+  ci:
+    name: ci
+    if: always()
+    needs: [lint, test, deny]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            [[ "$r" == success ]] || exit 1
+          done

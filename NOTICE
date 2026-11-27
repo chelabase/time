@@ -1,0 +1,12 @@
+chelabase-time
+Copyright 2026 Chelabase contributors
+
+This product is licensed under the Apache License, Version 2.0 (LICENSE).
+
+Portions of this software are derived from:
+
+- chrono (https://github.com/chronotope/chrono), dual-licensed under the MIT License and the
+  Apache License, Version 2.0: the timestamp and date parsers and their error messages are
+  ports of chrono 0.4.45's.
+- humantime (https://github.com/chronotope/humantime), dual-licensed under the MIT License and
+  the Apache License, Version 2.0: the duration grammar follows humantime 2.4.0's.
