@@ -1,0 +1,52 @@
+# cargo-deny configuration; CI runs `cargo deny check` (advisories, bans, licenses, sources).
+# https://embarkstudios.github.io/cargo-deny/
+
+# The oracle member compares this crate with chrono and humantime, so it is the one place they
+# may appear. Excluding it drops it and whatever only it pulls in; the library's own graph is
+# still checked (`scripts/deny-bans.sh` proves the bans fire on it).
+[graph]
+exclude = ["chelabase-time-oracle"]
+
+[advisories]
+db-urls = ["https://github.com/rustsec/advisory-db"]
+yanked = "deny"
+
+# Policy: this ignore list only shrinks. A new advisory is fixed by upgrading the dependency; an
+# ignore needs the maintainers' explicit approval and a reason.
+
+# Permissive licenses only, no copyleft (the same list as chelabase's).
+[licenses]
+confidence-threshold = 0.93
+# The list is shared with chelabase; an entry this smaller graph doesn't use isn't a warning.
+unused-allowed-license = "allow"
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+]
+
+[licenses.private]
+ignore = true
+
+# This crate replaces these; they may not come back, directly or through a dependency.
+[bans]
+deny = [
+    { crate = "chrono", reason = "RUSTSEC-2026-0543; this crate replaces it" },
+    { crate = "chrono-tz", reason = "RUSTSEC-2026-0555; jiff's bundled time zones replace it" },
+    { crate = "humantime", reason = "RUSTSEC-2026-0542; chelabase_time::parse_duration replaces it" },
+    { crate = "humantime-serde", reason = "pulls humantime (RUSTSEC-2026-0542)" },
+]
+
+# crates.io only.
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

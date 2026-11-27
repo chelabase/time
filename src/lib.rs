@@ -144,7 +144,9 @@
 //! | `format!("{t}")`, `t.to_string()` | the same (kept, see above); prefer a `to_rfc3339_*` |
 //! | `chrono-tz` `Tz`, `croner` with chrono | not here: schedules use croner's jiff backend and jiff's bundled time zones |
 
+pub mod civil;
 mod duration;
+pub mod human;
 mod jiff_backed;
 
 use std::fmt;
