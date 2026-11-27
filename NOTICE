@@ -9,4 +9,9 @@ Portions of this software are derived from:
   Apache License, Version 2.0: the timestamp and date parsers and their error messages are
   ports of chrono 0.4.45's.
 - humantime (https://github.com/chronotope/humantime), dual-licensed under the MIT License and
-  the Apache License, Version 2.0: the duration grammar follows humantime 2.4.0's.
+  the Apache License, Version 2.0: the duration grammar follows humantime 2.4.0's, and the
+  duration formatter and the SystemTime RFC 3339 formatter and parser (src/human) are ports of
+  humantime 2.2.0's.
+- humantime-serde (https://github.com/jean-airoldie/humantime-serde), dual-licensed under the
+  MIT License and the Apache License, Version 2.0: the serde module (src/human/serde.rs)
+  follows humantime-serde 1.1.1's.
