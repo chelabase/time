@@ -15,7 +15,7 @@ bad=0
 expect_banned() {
   local dir="$tmp/$1" dep="$2" crate="$3" out
   mkdir -p "$dir"
-  cp -r "$root/Cargo.toml" "$root/Cargo.lock" "$root/deny.toml" "$root/src" "$root/oracle" "$dir/"
+  cp -r "$root/Cargo.toml" "$root/Cargo.lock" "$root/deny.toml" "$root/src" "$root/tests" "$root/oracle" "$dir/"
   # The first [dependencies] table is the library's.
   sed -i "0,/^\[dependencies\]$/s//[dependencies]\n$dep/" "$dir/Cargo.toml"
   if out="$(cd "$dir" && cargo deny --offline check bans 2>&1)"; then
@@ -30,8 +30,8 @@ expect_banned() {
   fi
 }
 
-# chrono named directly (the version the oracle locks, so no resolution is needed).
-expect_banned direct 'chrono = "=0.4.45"' chrono
+# chrono named directly, as the oracle locks it (so `--offline` needs nothing new).
+expect_banned direct 'chrono = { version = "=0.4.45", default-features = false }' chrono
 # humantime pulled in through another crate.
 expect_banned transitive 'humantime-serde = "=1.1.1"' humantime
 
