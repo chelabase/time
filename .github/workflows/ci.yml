@@ -110,9 +110,6 @@ jobs:
 
       - run: cargo deny check
 
-      # The bans fire on the library's graph although the oracle member is excluded.
-      - run: bash scripts/deny-bans.sh
-
   ci:
     name: ci
     if: always()

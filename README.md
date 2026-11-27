@@ -24,10 +24,10 @@ Features (none are on by default):
 
 ```bash
 cargo fmt --all --check
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace --all-features
-cargo test --workspace --no-default-features
-cargo deny check && bash scripts/deny-bans.sh
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-features
+cargo test --no-default-features
+cargo deny check
 ```
 
 The live Postgres tests are ignored by default. Run them with a Postgres you can create a
@@ -37,9 +37,6 @@ schema in (each test drops its own schema afterwards):
 CHELABASE_METADATA_DATABASE_URL=postgres://user:password@127.0.0.1:5432/db \
   cargo test --all-features --test pg_live -- --include-ignored
 ```
-
-`oracle/` is an unpublished workspace member that compares this crate with chrono 0.4.45 and
-humantime 2.2.0. It is the only place `deny.toml` lets them in.
 
 ## License
 
