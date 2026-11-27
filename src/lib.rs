@@ -12,6 +12,12 @@
 //! [`parse_duration`] reads the human-readable durations (`1h 30m`) env vars and the
 //! pageserver use, with humantime 2.4.0's grammar.
 //!
+//! Two thin modules over jiff serve the Neon fork, which uses jiff's own types and formats:
+//! [`human`] (serde helpers and a clap type for `std::time::Duration`, written in jiff's
+//! friendly format and read with jiff, then humantime's grammar, so old stored values such as
+//! `7days` still read) and [`rfc3339`] (`SystemTime` written and read through
+//! `jiff::Timestamp`).
+//!
 //! Import the traits to use the methods: `use chelabase_time::{Timestamp, TimestampExt};`
 //! (or `use chelabase_time::prelude::*;`).
 //!
@@ -144,10 +150,10 @@
 //! | `format!("{t}")`, `t.to_string()` | the same (kept, see above); prefer a `to_rfc3339_*` |
 //! | `chrono-tz` `Tz`, `croner` with chrono | not here: schedules use croner's jiff backend and jiff's bundled time zones |
 
-pub mod civil;
 mod duration;
 pub mod human;
 mod jiff_backed;
+pub mod rfc3339;
 
 use std::fmt;
 use std::time::Duration;
